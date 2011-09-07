@@ -2,7 +2,24 @@
 namespace Jamm\Autoload;
 
 /**
+ * Class to organize autoloading by PSR-0 standard
+ *
+ * A fully-qualified namespace and class must have the following structure \<Vendor Name>\(<Namespace>\)*<Class Name>
+ * Each namespace must have a top-level namespace ("Vendor Name").
+ * Each namespace can have as many sub-namespaces as it wishes.
+ * Each namespace separator is converted to a DIRECTORY_SEPARATOR when loading from the file system.
+ * Each "_" character in the CLASS NAME is converted to a DIRECTORY_SEPARATOR. The "_" character has no special meaning in the namespace.
+ * The fully-qualified namespace and class is suffixed with ".php" when loading from the file system.
+ * Alphabetic characters in vendor names, namespaces, and class names may be of any combination of lower case and upper case.
+ * @link http://groups.google.com/group/php-standards/web/psr-0-final-proposal?pli=1
+ *
  * This class should be placed in /home/.../vendors/Jamm/Autoload/ directory
+ * In case of errors E_USER_WARNING will be triggered
+ * Methods of this class doesn't throws exceptions
+ * In first "include" of this file, this class will be automatically registerd as autoloader (in spl_autoload)
+ *
+ * @author OZ <normandiggs@gmail.com>
+ * @license http://en.wikipedia.org/wiki/MIT_License MIT
  */
 class Autoloader
 {
@@ -13,6 +30,7 @@ class Autoloader
 	protected static $namespaces_dirs = array();
 
 	/**
+	 * Register class - associate name of the class with path to the file
 	 * @param string $class_name
 	 * @param string $path
 	 * @return bool
@@ -53,7 +71,12 @@ class Autoloader
 		return false;
 	}
 
-	public static function find_in_classes($class_name)
+	/**
+	 * Find classname in registered classes
+	 * @param string $class_name
+	 * @return bool
+	 */
+	private static function find_in_classes($class_name)
 	{
 		$class_name = strtolower($class_name);
 
@@ -61,7 +84,12 @@ class Autoloader
 		return false;
 	}
 
-	public static function find_in_namespaces($class)
+	/**
+	 * Find classname in registered namespaces
+	 * @param string $class
+	 * @return bool|string
+	 */
+	private static function find_in_namespaces($class)
 	{
 		if (empty(self::$namespaces_dirs)) return false;
 		$pos = strrpos($class, '\\');
@@ -92,7 +120,10 @@ class Autoloader
 		return false;
 	}
 
-	/** @return bool */
+	/**
+	 * Start autoloader (register in spl_autoload), only if wasn't started yet.
+	 * @return bool
+	 */
 	public static function Start()
 	{
 		if (self::$started) return true;
@@ -104,13 +135,18 @@ class Autoloader
 		return spl_autoload_register(array(__CLASS__, 'autoload'));
 	}
 
-	public static function RegisterCommon()
+	/**
+	 * Register the modules directory as root namespace
+	 * @return void
+	 */
+	private static function RegisterCommon()
 	{
 		self::register_namespace_dir('', self::get_modules_dir());
 	}
 
 	/**
 	 * Return modules dir like "/home/dir/modules"
+	 * By default will be taken directory of this file without two last folders (__DIR__.'/../../')
 	 * @return string
 	 */
 	public static function get_modules_dir()
@@ -119,6 +155,11 @@ class Autoloader
 		return self::$modules_dir;
 	}
 
+	/**
+	 * Set directory of modules ("vendors")
+	 * @param string $dir
+	 * @return void
+	 */
 	public static function set_modules_dir($dir)
 	{
 		$dir = realpath($dir);
