@@ -16,16 +16,18 @@ namespace Jamm\Autoload;
  * This class should be placed in /home/.../vendors/Jamm/Autoload/ directory
  * In case of errors E_USER_WARNING will be triggered
  * Methods of this class doesn't throws exceptions
+ * In first "include" of this file, this class will be automatically registerd as autoloader (in spl_autoload)
  *
  * @author OZ <normandiggs@gmail.com>
  * @license http://en.wikipedia.org/wiki/MIT_License MIT
  */
 class Autoloader
 {
-	protected $classes = array();
-	protected $modules_dir;
-	protected $functions = array();
-	protected $namespaces_dirs = array();
+	protected static $classes = array();
+	protected static $modules_dir;
+	protected static $functions = array();
+	protected static $started = false;
+	protected static $namespaces_dirs = array();
 
 	/**
 	 * Register class - associate name of the class with path to the file
@@ -33,24 +35,24 @@ class Autoloader
 	 * @param string $path
 	 * @return bool
 	 */
-	public function register_class($class_name, $path)
+	public static function register_class($class_name, $path)
 	{
 		$class_name = strtolower($class_name);
-		if ($path[0]!='/') $path = $this->get_modules_dir().'/'.$path;
+		if ($path[0]!='/') $path = self::get_modules_dir().'/'.$path;
 
-		$this->classes[$class_name] = $path;
+		self::$classes[$class_name] = $path;
 	}
 
 	/**
 	 * @param string $class_name
 	 * @return bool
 	 */
-	public function autoload($class_name)
+	public static function autoload($class_name)
 	{
 		if ($class_name[0]=='\\') $class_name = substr($class_name, 1);
 
-		$file = $this->find_in_classes($class_name);
-		if (empty($file)) $file = $this->find_in_namespaces($class_name);
+		$file = self::find_in_classes($class_name);
+		if (empty($file)) $file = self::find_in_namespaces($class_name);
 
 		if (!empty($file))
 		{
@@ -58,13 +60,13 @@ class Autoloader
 			include $file;
 			if (!class_exists($class_name, false) && !interface_exists($class_name, false))
 			{
-				trigger_error('Class '.$class_name.' was not declared in included file: '.$file.PHP_EOL.$this->current_backtrace(), E_USER_WARNING);
+				trigger_error('Class '.$class_name.' was not declared in included file: '.$file.PHP_EOL.self::current_backtrace(), E_USER_WARNING);
 				return false;
 			}
 			return true;
 		}
 
-		$bt = $this->current_backtrace();
+		$bt = self::current_backtrace();
 		if (strpos($bt, 'class_exists')===false) trigger_error('Class '.$class_name.' was not found. Trace: '.$bt, E_USER_WARNING);
 		return false;
 	}
@@ -74,11 +76,11 @@ class Autoloader
 	 * @param string $class_name
 	 * @return bool
 	 */
-	private function find_in_classes($class_name)
+	private static function find_in_classes($class_name)
 	{
 		$class_name = strtolower($class_name);
 
-		if (!empty($this->classes[$class_name])) return $this->classes[$class_name];
+		if (!empty(self::$classes[$class_name])) return self::$classes[$class_name];
 		return false;
 	}
 
@@ -87,9 +89,9 @@ class Autoloader
 	 * @param string $class
 	 * @return bool|string
 	 */
-	private function find_in_namespaces($class)
+	private static function find_in_namespaces($class)
 	{
-		if (empty($this->namespaces_dirs)) return false;
+		if (empty(self::$namespaces_dirs)) return false;
 		$pos = strrpos($class, '\\');
 		if ($pos!==false)
 		{
@@ -102,7 +104,7 @@ class Autoloader
 			$class_name = str_replace('_', '/', $class);
 		}
 
-		foreach ($this->namespaces_dirs as $ns => $dir)
+		foreach (self::$namespaces_dirs as $ns => $dir)
 		{
 			if (empty($ns) || stripos($namespace, $ns)===0)
 			{
@@ -118,30 +120,28 @@ class Autoloader
 		return false;
 	}
 
-	public function __construct()
-	{
-		$this->start();
-	}
-
 	/**
-	 * start autoloader (register in spl_autoload), only if wasn't started yet.
+	 * Start autoloader (register in spl_autoload), only if wasn't started yet.
+	 * @return bool
 	 */
-	public function start()
+	public static function start()
 	{
+		if (self::$started) return true;
+		self::$started = true;
 		$home = explode(DIRECTORY_SEPARATOR, __DIR__);
-		$home = DIRECTORY_SEPARATOR.$home[1].DIRECTORY_SEPARATOR.$home[2];
+		$home = '/'.$home[1].DIRECTORY_SEPARATOR.$home[2];
 		define('HOME_DIR', $home, true);
-		$this->register_common();
-		spl_autoload_register(array($this, 'autoload'));
+		self::register_common();
+		return spl_autoload_register(array(__CLASS__, 'autoload'));
 	}
 
 	/**
 	 * Register the modules directory as root namespace
 	 * @return void
 	 */
-	private function register_common()
+	private static function register_common()
 	{
-		$this->register_namespace_dir('', $this->get_modules_dir());
+		self::register_namespace_dir('', self::get_modules_dir());
 	}
 
 	/**
@@ -149,10 +149,10 @@ class Autoloader
 	 * By default will be taken directory of this file without two last folders (__DIR__.'/../../')
 	 * @return string
 	 */
-	public function get_modules_dir()
+	public static function get_modules_dir()
 	{
-		if (empty($this->modules_dir)) $this->set_modules_dir(__DIR__.'/../../');
-		return $this->modules_dir;
+		if (empty(self::$modules_dir)) self::set_modules_dir(__DIR__.'/../../');
+		return self::$modules_dir;
 	}
 
 	/**
@@ -160,10 +160,10 @@ class Autoloader
 	 * @param string $dir
 	 * @return void
 	 */
-	public function set_modules_dir($dir)
+	public static function set_modules_dir($dir)
 	{
 		$dir = realpath($dir);
-		if (!empty($dir) && is_dir($dir)) $this->modules_dir = $dir;
+		if (!empty($dir) && is_dir($dir)) self::$modules_dir = $dir;
 		else
 		{
 			trigger_error('Autoloader can not set modules directory: '.$dir);
@@ -177,7 +177,7 @@ class Autoloader
 	 * @param string $namespace name\space\ (last symbol - slash, and no slashes in start)
 	 * @param string $dir
 	 */
-	public function register_namespace_dir($namespace, $dir)
+	public static function register_namespace_dir($namespace, $dir)
 	{
 		if (($dir = realpath($dir))===false)
 		{
@@ -185,10 +185,10 @@ class Autoloader
 			return false;
 		}
 		if (strpos($namespace, '\\')!==false) $namespace = trim($namespace, '\\').'\\';
-		$this->namespaces_dirs[$namespace] = $dir.'/';
+		self::$namespaces_dirs[$namespace] = $dir.'/';
 	}
 
-	private function current_backtrace()
+	private static function current_backtrace()
 	{
 		$tmp = debug_backtrace();
 		if (empty($tmp)) return false;
@@ -212,3 +212,6 @@ class Autoloader
 		return rtrim($str);
 	}
 }
+
+Autoloader::Start();
+
