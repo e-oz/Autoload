@@ -16,7 +16,6 @@ namespace Jamm\Autoload;
  * This class should be placed in /home/.../vendors/Jamm/Autoload/ directory
  * In case of errors E_USER_WARNING will be triggered
  * Methods of this class doesn't throws exceptions
- * In first "include" of this file, this class will be automatically registerd as autoloader (in spl_autoload)
  *
  * @author OZ <normandiggs@gmail.com>
  * @license http://en.wikipedia.org/wiki/MIT_License MIT
@@ -26,7 +25,6 @@ class Autoloader
 	protected $classes = array();
 	protected $modules_dir;
 	protected $functions = array();
-	protected $started = false;
 	protected $namespaces_dirs = array();
 
 	/**
@@ -127,17 +125,14 @@ class Autoloader
 
 	/**
 	 * start autoloader (register in spl_autoload), only if wasn't started yet.
-	 * @return bool
 	 */
 	public function start()
 	{
-		if ($this->started) return true;
-		$this->started = true;
 		$home = explode(DIRECTORY_SEPARATOR, __DIR__);
 		$home = DIRECTORY_SEPARATOR.$home[1].DIRECTORY_SEPARATOR.$home[2];
 		define('HOME_DIR', $home, true);
 		$this->register_common();
-		return spl_autoload_register(array($this, 'autoload'));
+		spl_autoload_register(array($this, 'autoload'));
 	}
 
 	/**
@@ -217,5 +212,3 @@ class Autoloader
 		return rtrim($str);
 	}
 }
-
-$Autoloader = new Autoloader();
