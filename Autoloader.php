@@ -2,7 +2,7 @@
 namespace Jamm\Autoload;
 
 /**
- * Class to organize autoloading by PSR-0 standard
+ * Class to organize autoloading by PHP naming conventions
  *
  * A fully-qualified namespace and class must have the following structure \<Vendor Name>\(<Namespace>\)*<Class Name>
  * Each namespace must have a top-level namespace ("Vendor Name").
@@ -11,10 +11,16 @@ namespace Jamm\Autoload;
  * Each "_" character in the CLASS NAME is converted to a DIRECTORY_SEPARATOR. The "_" character has no special meaning in the namespace.
  * The fully-qualified namespace and class is suffixed with ".php" when loading from the file system.
  * Alphabetic characters in vendor names, namespaces, and class names may be of any combination of lower case and upper case.
- * @link http://groups.google.com/group/php-standards/web/psr-0-final-proposal?pli=1
  *
- * This class should be placed in /home/.../vendors/Jamm/Autoload/ directory
+ * Default place of "vendors" folder is __DIR__.'/../../' directory,
+ * you can change it: use set_modules_dir() method
+ *
+ * Classes of all packages (libraries), placed in the "vendors" folder, will be autoloaded automatically (in first use).
+ * You can map namespace of package, placed in any folder: use register_namespace_dir() method.
+ * You can map any class also: use register_class() method.
+ *
  * In case of errors E_USER_WARNING will be triggered
+ *
  * Methods of this class doesn't throws exceptions
  *
  * @author OZ <normandiggs@gmail.com>
@@ -76,6 +82,8 @@ class Autoloader
 	 */
 	private function find_in_classes($class_name)
 	{
+		if (empty($this->classes)) return false;
+
 		$class_name = strtolower($class_name);
 
 		if (!empty($this->classes[$class_name])) return $this->classes[$class_name];
@@ -83,7 +91,7 @@ class Autoloader
 	}
 
 	/**
-	 * Find classname in registered namespaces
+	 * Find classname in registered namespaces (root namespace is registered automatically)
 	 * @param string $class
 	 * @return bool|string
 	 */
@@ -118,28 +126,36 @@ class Autoloader
 		return false;
 	}
 
-	/**
-	 * start autoloader (register in spl_autoload), only if wasn't started yet.
-	 */
 	public function __construct()
 	{
 		$this->start();
 	}
 
+	/**
+	 * start autoloader (register in spl_autoload)
+	 */
 	public function start()
 	{
-		$home = explode(DIRECTORY_SEPARATOR, __DIR__);
-		$home = DIRECTORY_SEPARATOR.$home[1].DIRECTORY_SEPARATOR.$home[2];
-		define('HOME_DIR', $home, true);
-		$this->register_common();
+		$this->define_home_dir_constant();
+		$this->register_root_namespace();
 		spl_autoload_register(array($this, 'autoload'));
 	}
 
 	/**
-	 * Register the modules directory as root namespace
+	 * Define HOME_DIR - by this constant other modules can check, if autoloader is exists
+	 */
+	protected function define_home_dir_constant()
+	{
+		$home = explode(DIRECTORY_SEPARATOR, __DIR__);
+		$home = DIRECTORY_SEPARATOR.$home[1].DIRECTORY_SEPARATOR.$home[2];
+		define('HOME_DIR', $home, true);
+	}
+
+	/**
+	 * Register "vendors" directory as root namespace
 	 * @return void
 	 */
-	private function register_common()
+	private function register_root_namespace()
 	{
 		$this->register_namespace_dir('', $this->get_modules_dir());
 	}
