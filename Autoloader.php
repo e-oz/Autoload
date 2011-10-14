@@ -32,6 +32,7 @@ class Autoloader
 	protected $modules_dir;
 	protected $functions = array();
 	protected $namespaces_dirs = array();
+	protected $warn_about_not_found = false;
 
 	/**
 	 * Register class - associate name of the class with path to the file
@@ -70,9 +71,17 @@ class Autoloader
 			return true;
 		}
 
-		$bt = $this->current_backtrace();
-		if (strpos($bt, 'class_exists')===false) trigger_error('Class '.$class_name.' was not found. Trace: '.$bt, E_USER_WARNING);
+		$this->warning_class_not_found($class_name);
 		return false;
+	}
+
+	private function warning_class_not_found($class_name)
+	{
+		if ($this->warn_about_not_found)
+		{
+			$bt = $this->current_backtrace();
+			if (strpos($bt, 'class_exists')===false) trigger_error('Class '.$class_name.' was not found. Trace: '.$bt, E_USER_WARNING);
+		}
 	}
 
 	/**
@@ -226,5 +235,10 @@ class Autoloader
 			$space .= $basespace;
 		}
 		return rtrim($str);
+	}
+
+	public function setWarnAboutNotFound($warn_about_not_found = true)
+	{
+		$this->warn_about_not_found = $warn_about_not_found;
 	}
 }
