@@ -33,6 +33,7 @@ class Autoloader
 	protected $functions = array();
 	protected $namespaces_dirs = array();
 	protected $warn_about_not_found = false;
+	protected $search_log;
 
 	/**
 	 * Register class - associate name of the class with path to the file
@@ -80,7 +81,10 @@ class Autoloader
 		if ($this->warn_about_not_found)
 		{
 			$bt = $this->current_backtrace();
-			if (strpos($bt, 'class_exists')===false) trigger_error('Class '.$class_name.' was not found. Trace: '.$bt, E_USER_WARNING);
+			if (strpos($bt, 'class_exists')===false)
+			{
+				trigger_error('Class '.$class_name." was not found. Trace: \n$bt\n Search log:\n ".print_r($this->search_log, 1), E_USER_WARNING);
+			}
 		}
 	}
 
@@ -96,7 +100,15 @@ class Autoloader
 		$class_name = strtolower($class_name);
 
 		if (!empty($this->classes[$class_name])) return $this->classes[$class_name];
+		$this->log_search_variant(__FUNCTION__, $class_name);
 		return false;
+	}
+
+	private function log_search_variant($method_title, $class_name, $filepath = '')
+	{
+		$str = $method_title.': '.$class_name;
+		if (!empty($filepath)) $str .= ' = > '.$filepath;
+		$this->search_log[] = $str;
 	}
 
 	/**
@@ -115,8 +127,10 @@ class Autoloader
 		}
 		else
 		{
-			$namespace = '';
 			$class_name = str_replace('_', '/', $class);
+			$pos = strrpos($class_name, '/');
+			$namespace = str_replace('/', '\\', substr($class_name, 0, $pos+1));
+			$class_name = substr($class_name, $pos+1);
 		}
 
 		foreach ($this->namespaces_dirs as $ns => $dir)
@@ -130,6 +144,7 @@ class Autoloader
 				if (file_exists($file)) return $file;
 				$file = $dir.$class_path.'.class';
 				if (file_exists($file)) return $file;
+				$this->log_search_variant(__FUNCTION__, $class_name, $dir.$class_path.'.php|.inc|.class');
 			}
 		}
 		return false;
@@ -237,8 +252,18 @@ class Autoloader
 		return rtrim($str);
 	}
 
-	public function setWarnAboutNotFound($warn_about_not_found = true)
+	public function set_warn_about_not_found($warn_about_not_found = true)
 	{
 		$this->warn_about_not_found = $warn_about_not_found;
+	}
+
+	public function get_search_log()
+	{
+		return $this->search_log;
+	}
+
+	public function get_namespaces()
+	{
+		return $this->namespaces_dirs;
 	}
 }
