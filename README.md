@@ -1,6 +1,6 @@
 Autoload
 ========
-Class to organize autoloading by [PHP naming conventions](http://news.php.net/php.standards/2):
+Class to organize autoloading by [PHP naming conventions](http://news.php.net/php.standards/2) and [PSR-0 standard](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-0.md):
 
  * A fully-qualified namespace and class must have the following structure `\<Vendor Name>\(<Namespace>\)*<Class Name>`
  * Each namespace must have a top-level namespace ("Vendor Name").
