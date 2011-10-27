@@ -36,123 +36,11 @@ class Autoloader
 	protected $search_log;
 
 	/**
-	 * Register class - associate name of the class with path to the file
-	 * @param string $class_name
-	 * @param string $path
-	 * @return bool
+	 * @param bool $autostart - call method start in constructor
 	 */
-	public function register_class($class_name, $path)
+	public function __construct($autostart = true)
 	{
-		$class_name = strtolower($class_name);
-		if ($path[0]!='/') $path = $this->get_modules_dir().'/'.$path;
-
-		$this->classes[$class_name] = $path;
-	}
-
-	/**
-	 * @param string $class_name
-	 * @return bool
-	 */
-	public function autoload($class_name)
-	{
-		if ($class_name[0]=='\\') $class_name = substr($class_name, 1);
-
-		$file = $this->find_in_classes($class_name);
-		if (empty($file)) $file = $this->find_in_namespaces($class_name);
-
-		if (!empty($file))
-		{
-			/** @noinspection PhpIncludeInspection */
-			include $file;
-			if (!class_exists($class_name, false) && !interface_exists($class_name, false))
-			{
-				trigger_error('Class '.$class_name.' was not declared in included file: '.$file.PHP_EOL.$this->current_backtrace(), E_USER_WARNING);
-				return false;
-			}
-			return true;
-		}
-
-		$this->warning_class_not_found($class_name);
-		return false;
-	}
-
-	private function warning_class_not_found($class_name)
-	{
-		if ($this->warn_about_not_found)
-		{
-			$bt = $this->current_backtrace();
-			if (strpos($bt, 'class_exists')===false)
-			{
-				trigger_error('Class '.$class_name." was not found. Trace: \n$bt\n Search log:\n ".print_r($this->search_log, 1), E_USER_WARNING);
-			}
-		}
-	}
-
-	/**
-	 * Find classname in registered classes
-	 * @param string $class_name
-	 * @return bool
-	 */
-	private function find_in_classes($class_name)
-	{
-		if (empty($this->classes)) return false;
-
-		$class_name = strtolower($class_name);
-
-		if (!empty($this->classes[$class_name])) return $this->classes[$class_name];
-		$this->log_search_variant(__FUNCTION__, $class_name);
-		return false;
-	}
-
-	private function log_search_variant($method_title, $class_name, $filepath = '')
-	{
-		$str = $method_title.': '.$class_name;
-		if (!empty($filepath)) $str .= ' = > '.$filepath;
-		$this->search_log[] = $str;
-	}
-
-	/**
-	 * Find classname in registered namespaces (root namespace is registered automatically)
-	 * @param string $class
-	 * @return bool|string
-	 */
-	private function find_in_namespaces($class)
-	{
-		if (empty($this->namespaces_dirs)) return false;
-		$pos = strrpos($class, '\\');
-		if ($pos!==false)
-		{
-			$namespace = substr($class, 0, $pos+1);
-			$class_name = str_replace('_', '/', substr($class, $pos+1));
-		}
-		else
-		{
-			$class_name = str_replace('_', '/', $class);
-			$pos = strrpos($class_name, '/');
-			$namespace = str_replace('/', '\\', substr($class_name, 0, $pos+1));
-			$class_name = substr($class_name, $pos+1);
-		}
-
-		foreach ($this->namespaces_dirs as $ns => $dir)
-		{
-			if (empty($ns) || stripos($namespace, $ns)===0)
-			{
-				$class_path = str_replace('\\', '/', substr($namespace, strlen($ns))).$class_name;
-				$file = $dir.$class_path.'.php';
-				if (file_exists($file)) return $file;
-				$file = $dir.$class_path.'.inc';
-				if (file_exists($file)) return $file;
-				$file = $dir.$class_path.'.class';
-				if (file_exists($file)) return $file;
-				$this->log_search_variant(__FUNCTION__, $class_name, $dir.$class_path.'.php|.inc|.class');
-			}
-		}
-		return false;
-	}
-
-	public function __construct()
-	{
-		$this->start();
+		if ($autostart) $this->start();
 	}
 
 	/**
@@ -185,6 +73,38 @@ class Autoloader
 	}
 
 	/**
+	 * Associate namespace with directory
+	 * For example, if namespace '\name\space' will be associated with directory '/home/name/space',
+	 * class '\name\space\subnamespace\Class_Name.php' will be looked in /home/name/space/subnamespace/Class_Name.php
+	 * @param string $namespace name\space\ (last symbol - slash, and no slashes in start)
+	 * @param string $dir
+	 */
+	public function register_namespace_dir($namespace, $dir)
+	{
+		if (($dir = realpath($dir))===false)
+		{
+			trigger_error('Namespace was not registered! Directory not found');
+			return false;
+		}
+		if (strpos($namespace, '\\')!==false) $namespace = trim($namespace, '\\').'\\';
+		$this->namespaces_dirs[$namespace] = $dir.'/';
+	}
+
+	/**
+	 * Register class - associate name of the class with path to the file (mapping)
+	 * @param string $class_name
+	 * @param string $path
+	 * @return bool
+	 */
+	public function register_class($class_name, $path)
+	{
+		$class_name = strtolower($class_name);
+		if ($path[0]!='/') $path = $this->get_modules_dir().'/'.$path;
+
+		$this->classes[$class_name] = $path;
+	}
+
+	/**
 	 * Return modules dir like "/home/dir/modules"
 	 * By default will be taken directory of this file without two last folders (__DIR__.'/../../')
 	 * @return string
@@ -210,48 +130,6 @@ class Autoloader
 		}
 	}
 
-	/**
-	 * Associate namespace with directory
-	 * For example, if namespace '\name\space' will be associated with directory '/home/name/space',
-	 * class '\name\space\subnamespace\Class_Name.php' will be looked in /home/name/space/subnamespace/Class_Name.php
-	 * @param string $namespace name\space\ (last symbol - slash, and no slashes in start)
-	 * @param string $dir
-	 */
-	public function register_namespace_dir($namespace, $dir)
-	{
-		if (($dir = realpath($dir))===false)
-		{
-			trigger_error('Namespace was not registered! Directory not found');
-			return false;
-		}
-		if (strpos($namespace, '\\')!==false) $namespace = trim($namespace, '\\').'\\';
-		$this->namespaces_dirs[$namespace] = $dir.'/';
-	}
-
-	private function current_backtrace()
-	{
-		$tmp = debug_backtrace();
-		if (empty($tmp)) return false;
-		$str = '';
-		$space = $basespace = '|';
-		foreach ($tmp as $t)
-		{
-			if (!isset($t['file'])) $t['file'] = '[not a file]';
-			if (!isset($t['line'])) $t['line'] = '[-1]';
-			if ($t['function']=='include' || $t['function']=='include_once' || $t['function']=='current_backtrace' || $t['function']=='write_log') continue;
-			$str .= ' '.$space.$t['file']."\t[".$t['line']."]\t";
-			if (array_key_exists('class', $t))
-			{
-				$str .= $t['class'];
-				if (isset($t['type'])) $str .= $t['type'];
-			}
-			$str .= $t['function'];
-			$str .= "\n";
-			$space .= $basespace;
-		}
-		return rtrim($str);
-	}
-
 	public function set_warn_about_not_found($warn_about_not_found = true)
 	{
 		$this->warn_about_not_found = $warn_about_not_found;
@@ -266,4 +144,122 @@ class Autoloader
 	{
 		return $this->namespaces_dirs;
 	}
+	
+	/**
+	 * @param string $class_name
+	 * @return bool
+	 */
+	public function autoload($class_name)
+	{
+		if ($class_name[0]=='\\') $class_name = substr($class_name, 1);
+
+		$file = $this->find_in_classes($class_name);
+		if (empty($file)) $file = $this->find_in_namespaces($class_name);
+
+		if (!empty($file))
+		{
+			return $this->include_class_file($class_name, $file);
+		}
+		else
+		{
+			$this->warning_class_not_found($class_name);
+			return false;
+		}
+	}
+
+	protected function include_class_file($class_name, $file)
+	{
+		/** @noinspection PhpIncludeInspection */
+		include $file;
+		if (!class_exists($class_name, false) && !interface_exists($class_name, false))
+		{
+			trigger_error('Class '.$class_name.' was not declared in included file: '.$file, E_USER_WARNING);
+			return false;
+		}
+		return true;
+	}
+
+	private function warning_class_not_found($class_name)
+	{
+		if ($this->warn_about_not_found)
+		{
+			trigger_error('Class '.$class_name." was not found. Search log:\n ".print_r($this->search_log, 1), E_USER_WARNING);
+		}
+	}
+
+	/**
+	 * Find classname in registered classes
+	 * @param string $class_name
+	 * @return bool
+	 */
+	private function find_in_classes($class_name)
+	{
+		if (empty($this->classes)) return false;
+
+		$class_name = strtolower($class_name);
+
+		if (!empty($this->classes[$class_name])) return $this->classes[$class_name];
+		$this->log_search_variant(__FUNCTION__, $class_name);
+		return false;
+	}
+
+	/**
+	 * Add next variant of filepath from searching method to the log
+	 * @param string $method_title
+	 * @param string $class_name
+	 * @param string $filepath
+	 */
+	protected function log_search_variant($method_title, $class_name, $filepath = '')
+	{
+		$str = $method_title.': '.$class_name;
+		if (!empty($filepath)) $str .= ' = > '.$filepath;
+		$this->search_log[] = $str;
+	}
+
+	/**
+	 * Find path to the file of class in registered namespaces (root namespace is registered automatically)
+	 * @param string $class
+	 * @return bool|string
+	 */
+	private function find_in_namespaces($class)
+	{
+		if (empty($this->namespaces_dirs)) return false;
+		$pos = strrpos($class, '\\');
+		if ($pos!==false)
+		{
+			$namespace = substr($class, 0, $pos+1);
+			$class_name = str_replace('_', '/', substr($class, $pos+1));
+		}
+		else
+		{
+			$class_name = str_replace('_', '/', $class);
+			$pos = strrpos($class_name, '/');
+			$namespace = str_replace('/', '\\', substr($class_name, 0, $pos+1));
+			$class_name = substr($class_name, $pos+1);
+		}
+
+		foreach ($this->namespaces_dirs as $ns => $dir)
+		{
+			if (empty($ns) || stripos($namespace, $ns)===0)
+			{
+				$class_path = str_replace('\\', '/', substr($namespace, strlen($ns))).$class_name;
+				$filepath = $this->generate_filepath($dir, $class_path);
+				if (!empty($filepath)) return $filepath;
+				$this->log_search_variant(__FUNCTION__, $class_name, $dir.$class_path.'.*');
+			}
+		}
+		return false;
+	}
+
+	protected function generate_filepath($dir, $class_path)
+	{
+		$file = $dir.$class_path.'.php';
+		if (file_exists($file)) return $file;
+		$file = $dir.$class_path.'.inc';
+		if (file_exists($file)) return $file;
+		$file = $dir.$class_path.'.class';
+		if (file_exists($file)) return $file;
+		return false;
+	}
+
 }
