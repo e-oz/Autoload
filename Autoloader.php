@@ -58,9 +58,12 @@ class Autoloader
 	 */
 	protected function define_home_dir_constant()
 	{
-		$home = explode(DIRECTORY_SEPARATOR, __DIR__);
-		$home = DIRECTORY_SEPARATOR.$home[1].DIRECTORY_SEPARATOR.$home[2];
-		define('HOME_DIR', $home, true);
+		if (!defined('HOME_DIR'))
+		{
+			$home = explode(DIRECTORY_SEPARATOR, __DIR__);
+			$home = DIRECTORY_SEPARATOR.$home[1].DIRECTORY_SEPARATOR.$home[2];
+			define('HOME_DIR', $home, true);
+		}
 	}
 
 	/**
@@ -144,7 +147,7 @@ class Autoloader
 	{
 		return $this->namespaces_dirs;
 	}
-	
+
 	/**
 	 * @param string $class_name
 	 * @return bool
@@ -153,7 +156,8 @@ class Autoloader
 	{
 		if ($class_name[0]=='\\') $class_name = substr($class_name, 1);
 
-		$file = $this->find_in_classes($class_name);
+		$this->search_log = NULL;
+		$file             = $this->find_in_classes($class_name);
 		if (empty($file)) $file = $this->find_in_namespaces($class_name);
 
 		if (!empty($file))
@@ -227,14 +231,14 @@ class Autoloader
 		$pos = strrpos($class, '\\');
 		if ($pos!==false)
 		{
-			$namespace = substr($class, 0, $pos+1);
+			$namespace  = substr($class, 0, $pos+1);
 			$class_name = str_replace('_', '/', substr($class, $pos+1));
 		}
 		else
 		{
 			$class_name = str_replace('_', '/', $class);
-			$pos = strrpos($class_name, '/');
-			$namespace = str_replace('/', '\\', substr($class_name, 0, $pos+1));
+			$pos        = strrpos($class_name, '/');
+			$namespace  = str_replace('/', '\\', substr($class_name, 0, $pos+1));
 			$class_name = substr($class_name, $pos+1);
 		}
 
@@ -243,7 +247,7 @@ class Autoloader
 			if (empty($ns) || stripos($namespace, $ns)===0)
 			{
 				$class_path = str_replace('\\', '/', substr($namespace, strlen($ns))).$class_name;
-				$filepath = $this->generate_filepath($dir, $class_path);
+				$filepath   = $this->generate_filepath($dir, $class_path);
 				if (!empty($filepath)) return $filepath;
 				$this->log_search_variant(__FUNCTION__, $class_name, $dir.$class_path.'.*');
 			}
