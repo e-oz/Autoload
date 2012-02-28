@@ -7,8 +7,8 @@ namespace Jamm\Autoload;
  * A fully-qualified namespace and class must have the following structure \<Vendor Name>\(<Namespace>\)*<Class Name>
  * Each namespace must have a top-level namespace ("Vendor Name").
  * Each namespace can have as many sub-namespaces as it wishes.
- * Each namespace separator is converted to a DIRECTORY_SEPARATOR when loading from the file system.
- * Each "_" character in the CLASS NAME is converted to a DIRECTORY_SEPARATOR. The "_" character has no special meaning in the namespace.
+ * Each namespace separator is converted to "/" when loading from the file system.
+ * Each "_" character in the CLASS NAME is converted to "/". The "_" character has no special meaning in the namespace.
  * The fully-qualified namespace and class is suffixed with ".php" when loading from the file system.
  * Alphabetic characters in vendor names, namespaces, and class names may be of any combination of lower case and upper case.
  *
@@ -60,8 +60,8 @@ class Autoloader
 	{
 		if (!defined('HOME_DIR'))
 		{
-			$home = explode(DIRECTORY_SEPARATOR, __DIR__);
-			$home = DIRECTORY_SEPARATOR.$home[1].DIRECTORY_SEPARATOR.$home[2];
+			$home = explode('/', __DIR__);
+			$home = '/'.$home[1].'/'.$home[2];
 			define('HOME_DIR', $home, true);
 		}
 	}
@@ -126,6 +126,7 @@ class Autoloader
 	public function set_modules_dir($dir)
 	{
 		$dir = realpath($dir);
+		$dir = str_replace('\\', '/', $dir);
 		if (!empty($dir) && is_dir($dir)) $this->modules_dir = $dir;
 		else
 		{
