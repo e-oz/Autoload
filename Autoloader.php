@@ -7,8 +7,8 @@ namespace Jamm\Autoload;
  * A fully-qualified namespace and class must have the following structure \<Vendor Name>\(<Namespace>\)*<Class Name>
  * Each namespace must have a top-level namespace ("Vendor Name").
  * Each namespace can have as many sub-namespaces as it wishes.
- * Each namespace separator is converted to "/" when loading from the file system.
- * Each "_" character in the CLASS NAME is converted to "/". The "_" character has no special meaning in the namespace.
+ * Each namespace separator is converted to DIRECTORY_SEPARATOR when loading from the file system.
+ * Each "_" character in the CLASS NAME is converted to DIRECTORY_SEPARATOR. The "_" character has no special meaning in the namespace.
  * The fully-qualified namespace and class is suffixed with ".php" when loading from the file system.
  * Alphabetic characters in vendor names, namespaces, and class names may be of any combination of lower case and upper case.
  *
@@ -60,8 +60,8 @@ class Autoloader
 	{
 		if (!defined('HOME_DIR'))
 		{
-			$home = explode('/', __DIR__);
-			$home = '/'.$home[1].'/'.$home[2];
+			$home = explode(DIRECTORY_SEPARATOR, __DIR__);
+			$home = DIRECTORY_SEPARATOR.$home[1].DIRECTORY_SEPARATOR.$home[2];
 			define('HOME_DIR', $home, true);
 		}
 	}
@@ -90,7 +90,7 @@ class Autoloader
 			return false;
 		}
 		if (strpos($namespace, '\\')!==false) $namespace = trim($namespace, '\\').'\\';
-		$this->namespaces_dirs[$namespace] = $dir.'/';
+		$this->namespaces_dirs[$namespace] = $dir.DIRECTORY_SEPARATOR;
 	}
 
 	/**
@@ -102,7 +102,7 @@ class Autoloader
 	public function register_class($class_name, $path)
 	{
 		$class_name = strtolower($class_name);
-		if ($path[0]!='/') $path = $this->get_modules_dir().'/'.$path;
+		if ($path[0]!=DIRECTORY_SEPARATOR) $path = $this->get_modules_dir().DIRECTORY_SEPARATOR.$path;
 
 		$this->classes[$class_name] = $path;
 	}
@@ -114,7 +114,7 @@ class Autoloader
 	 */
 	public function get_modules_dir()
 	{
-		if (empty($this->modules_dir)) $this->set_modules_dir(__DIR__.'/../../');
+		if (empty($this->modules_dir)) $this->set_modules_dir(__DIR__.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR.'..'.DIRECTORY_SEPARATOR);
 		return $this->modules_dir;
 	}
 
@@ -126,7 +126,6 @@ class Autoloader
 	public function set_modules_dir($dir)
 	{
 		$dir = realpath($dir);
-		$dir = str_replace('\\', '/', $dir);
 		if (!empty($dir) && is_dir($dir)) $this->modules_dir = $dir;
 		else
 		{
@@ -233,13 +232,13 @@ class Autoloader
 		if ($pos!==false)
 		{
 			$namespace  = substr($class, 0, $pos+1);
-			$class_name = str_replace('_', '/', substr($class, $pos+1));
+			$class_name = str_replace('_', DIRECTORY_SEPARATOR, substr($class, $pos+1));
 		}
 		else
 		{
-			$class_name = str_replace('_', '/', $class);
-			$pos        = strrpos($class_name, '/');
-			$namespace  = str_replace('/', '\\', substr($class_name, 0, $pos+1));
+			$class_name = str_replace('_', DIRECTORY_SEPARATOR, $class);
+			$pos        = strrpos($class_name, DIRECTORY_SEPARATOR);
+			$namespace  = str_replace(DIRECTORY_SEPARATOR, '\\', substr($class_name, 0, $pos+1));
 			$class_name = substr($class_name, $pos+1);
 		}
 
@@ -247,7 +246,7 @@ class Autoloader
 		{
 			if (empty($ns) || stripos($namespace, $ns)===0)
 			{
-				$class_path = str_replace('\\', '/', substr($namespace, strlen($ns))).$class_name;
+				$class_path = str_replace('\\', DIRECTORY_SEPARATOR, substr($namespace, strlen($ns))).$class_name;
 				$filepath   = $this->generate_filepath($dir, $class_path);
 				if (!empty($filepath)) return $filepath;
 				$this->log_search_variant(__FUNCTION__, $class_name, $dir.$class_path.'.*');
