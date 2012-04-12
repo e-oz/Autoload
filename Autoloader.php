@@ -23,7 +23,7 @@ namespace Jamm\Autoload;
  *
  * Methods of this class doesn't throws exceptions
  *
- * @author OZ <normandiggs@gmail.com>
+ * @author  OZ <normandiggs@gmail.com>
  * @license http://en.wikipedia.org/wiki/MIT_License MIT
  */
 class Autoloader
@@ -86,10 +86,10 @@ class Autoloader
 	{
 		if (($dir = realpath($dir))===false)
 		{
-			trigger_error('Namespace was not registered! Directory not found');
+			trigger_error('Namespace was not registered! Directory not found', E_USER_WARNING);
 			return false;
 		}
-		if (strpos($namespace, '\\')!==false) $namespace = trim($namespace, '\\').'\\';
+		if (!empty($namespace)) $namespace = trim($namespace, '\\').'\\';
 		$this->namespaces_dirs[$namespace] = $dir.DIRECTORY_SEPARATOR;
 	}
 
@@ -242,16 +242,29 @@ class Autoloader
 			$class_name = substr($class_name, $pos+1);
 		}
 
-		foreach ($this->namespaces_dirs as $ns => $dir)
+		if (count($this->namespaces_dirs) > 1)
 		{
-			if (empty($ns) || stripos($namespace, $ns)===0)
+			foreach ($this->namespaces_dirs as $ns => $dir)
 			{
-				$class_path = str_replace('\\', DIRECTORY_SEPARATOR, substr($namespace, strlen($ns))).$class_name;
-				$filepath   = $this->generate_filepath($dir, $class_path);
-				if (!empty($filepath)) return $filepath;
-				$this->log_search_variant(__FUNCTION__, $class_name, $dir.$class_path.'.*');
+				if (stripos($namespace, $ns)===0)
+				{
+					$filepath = $this->lookFileInNamespaceDir($namespace, $ns, $class_name, $dir);
+					if (!empty($filepath)) return $filepath;
+				}
 			}
 		}
+		$dir      = $this->namespaces_dirs[''];
+		$filepath = $this->lookFileInNamespaceDir($namespace, '', $class_name, $dir);
+		if (!empty($filepath)) return $filepath;
+		return false;
+	}
+
+	private function lookFileInNamespaceDir($class_namespace, $mapped_namespace, $class_name, $mapped_dir)
+	{
+		$class_path = str_replace('\\', DIRECTORY_SEPARATOR, substr($class_namespace, strlen($mapped_namespace))).$class_name;
+		$filepath   = $this->generate_filepath($mapped_dir, $class_path);
+		if (!empty($filepath)) return $filepath;
+		$this->log_search_variant(__FUNCTION__, $class_name, $mapped_dir.$class_path.'.*');
 		return false;
 	}
 
