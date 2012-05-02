@@ -177,6 +177,13 @@ class Autoloader
 		include $file;
 		if (!class_exists($class_name, false) && !interface_exists($class_name, false))
 		{
+			if (strpos(PHP_VERSION, '5.4')!==false)
+			{
+				if (trait_exists($class_name, false))
+				{
+					return true;
+				}
+			}
 			trigger_error('Class '.$class_name.' was not declared in included file: '.$file, E_USER_WARNING);
 			return false;
 		}
