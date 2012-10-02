@@ -1,6 +1,5 @@
 <?php
 namespace Jamm\Autoload;
-
 /**
  * Class to organize autoloading by PHP naming conventions
  *
@@ -103,7 +102,6 @@ class Autoloader
 	{
 		$class_name = strtolower($class_name);
 		if ($path[0]!=DIRECTORY_SEPARATOR) $path = $this->get_modules_dir().DIRECTORY_SEPARATOR.$path;
-
 		$this->classes[$class_name] = $path;
 	}
 
@@ -155,11 +153,9 @@ class Autoloader
 	public function autoload($class_name)
 	{
 		if ($class_name[0]=='\\') $class_name = substr($class_name, 1);
-
 		$this->search_log = NULL;
 		$file             = $this->find_in_classes($class_name);
 		if (empty($file)) $file = $this->find_in_namespaces($class_name);
-
 		if (!empty($file))
 		{
 			return $this->include_class_file($class_name, $file);
@@ -206,9 +202,7 @@ class Autoloader
 	private function find_in_classes($class_name)
 	{
 		if (empty($this->classes)) return false;
-
 		$class_name = strtolower($class_name);
-
 		if (!empty($this->classes[$class_name])) return $this->classes[$class_name];
 		$this->log_search_variant(__FUNCTION__, $class_name);
 		return false;
@@ -248,7 +242,6 @@ class Autoloader
 			$namespace  = str_replace(DIRECTORY_SEPARATOR, '\\', substr($class_name, 0, $pos+1));
 			$class_name = substr($class_name, $pos+1);
 		}
-
 		if (count($this->namespaces_dirs) > 1)
 		{
 			foreach ($this->namespaces_dirs as $ns => $dir)
