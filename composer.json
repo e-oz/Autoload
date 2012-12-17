@@ -4,6 +4,7 @@
 		"php": ">=5.3.0"
 	},
 	"description": "Class to organize autoloading by PHP naming conventions and PSR-0 standard",
+	
 	"version": "1.1.0",
 	"type": "library",
 	"keywords": ["autoload", "autoloader", "PSR-0", "classmap"],
