@@ -26,5 +26,5 @@
 			"Jamm\\Autoload": "lib/"
 		}
 	},
-	"target-dir": "Jamm/Autoload"
+	"target-dir": "/vendor/Jamm/Autoload"
 }
