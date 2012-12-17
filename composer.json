@@ -25,5 +25,6 @@
 		"psr-0": {
 			"Jamm\\Autoload": "lib/"
 		}
-	}
+	},
+	"target-dir": "Jamm/Autoload"
 }
