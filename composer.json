@@ -1,5 +1,5 @@
 {
-	"name": "jamm/autoloader",
+	"name": "jamm/autoload",
 	"require": {
 		"php": ">=5.3.0"
 	},
