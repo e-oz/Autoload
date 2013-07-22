@@ -173,7 +173,7 @@ class Autoloader
 		include $file;
 		if (!class_exists($class_name, false) && !interface_exists($class_name, false))
 		{
-			if (strpos(PHP_VERSION, '5.4')!==false)
+			if (PHP_VERSION_ID >= 50400)
 			{
 				if (trait_exists($class_name, false))
 				{
